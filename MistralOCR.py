@@ -1,7 +1,7 @@
 from mistralai import Mistral
 import sys
 from pathlib import Path
-from LLMTranslate import filenameFromPath
+from utility import filenameFromPath
 
 
 def ocrCall(path, mistral_client):

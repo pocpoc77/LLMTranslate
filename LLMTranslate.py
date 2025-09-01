@@ -6,6 +6,7 @@ from pathlib import Path
 import time
 import configparser
 import MistralOCR
+from utility import filenameFromPath
 
 parser = argparse.ArgumentParser(prog='LLM Translate', description='Translates the input file, to the target language in page chunks.')
 parser.add_argument('filename', help='Input file path')
@@ -161,9 +162,7 @@ def apiCall(content, path, model):
         output.write(str(translated_content) + '\n')
 
 
-def filenameFromPath(path):
-    name = path.replace(Path(path).suffix, "")
-    return name
+
 
 def main():
     if(args.filename.endswith(".pdf")):
