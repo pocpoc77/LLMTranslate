@@ -8,10 +8,62 @@ from PySide6.QtCore import Qt
 import configparser
 from pathlib import Path
 
+class AppConfig:
+    """Central configuration object for the application"""
+    def __init__(self):
+        self.openai_url = ""
+        self.openai_key = ""
+        self.mistral_key = ""
+        self.system_prompt = ""
+
+    def load_from_file(self, config_file = Path("LLM-translate-config.ini")):
+        """Load configuration from file"""
+        try:
+            config = configparser.ConfigParser()
+            config.read(config_file)
+
+            if 'DEFAULT' in config:
+                self.openai_url = config['DEFAULT'].get('openai_url', '')
+                self.openai_key = config['DEFAULT'].get('openai', '')
+                self.mistral_key = config['DEFAULT'].get('mistral', '')
+
+            if 'PROMPT' in config and 'system_prompt' in config['PROMPT']:
+                self.system_prompt = config['PROMPT']['system_prompt']
+
+            return True
+        except Exception as e:
+            print(f"Error loading config: {e}")
+            return False
+
+    def save_to_file(self, config_file="LLM-translate-config.ini"):
+        """Save configuration to file"""
+        try:
+            config = configparser.ConfigParser()
+            config['DEFAULT'] = {
+                'openai_url': self.openai_url,
+                'openai': self.openai_key,
+                'mistral': self.mistral_key
+            }
+
+            config['PROMPT'] = {
+                'system_prompt': self.system_prompt
+            }
+
+            with open(config_file, 'w') as f:
+                config.write(f)
+
+            return True
+        except Exception as e:
+            print(f"Error saving config: {e}")
+            return False
+
+
+
 class ConfigurationPage(QWidget):
     """Configuration screen for API keys and prompt settings"""
-    def __init__(self):
+    def __init__(self, app_config):
         super().__init__()
+        self.app_config = app_config
         self.initUI()
         self.load_config()
 
@@ -60,46 +112,32 @@ class ConfigurationPage(QWidget):
 
 
     def load_config(self):
-        """loads the config file and parses the parameters"""
-        config = configparser.ConfigParser()
-        config_file = Path("LLM-translate-config.ini")
-
-        # Read create config file if it exists
-        if config_file.exists():
-            print(f"Config file '{config_file}' found. Reading configuration...")
-            config.read(config_file)
-            # Load API keys
-            if 'DEFAULT' in config:
-                self.openai_url_edit.setText(config["DEFAULT"].get('openai_url', ''))
-                self.openai_key_edit.setText(config['DEFAULT'].get('openai', ''))
-                self.mistral_key_edit.setText(config['DEFAULT'].get('mistral', ''))
-
-            if 'PROMPT' in config:
-                self.prompt_edit.setPlainText(config["PROMPT"].get('system_prompt', ''))
+        """loads the config"""
+        self.openai_url_edit.setText(self.app_config.openai_url)
+        self.openai_key_edit.setText(self.app_config.openai_key)
+        self.mistral_key_edit.setText(self.app_config.mistral_key)
+        self.prompt_edit.setPlainText(self.app_config.system_prompt)
 
     def save_config(self):
         """Save configuration to file"""
-        config = configparser.ConfigParser()
-        config["DEFAULT"] = {
-            'openai_url': self.openai_url_edit.text(),
-            'openai' : self.openai_key_edit.text(),
-            'mistral' : self.mistral_key_edit.text()
-        }
+        # Update the shared config object
+        self.app_config.openai_url = self.openai_url_edit.text()
+        self.app_config.openai_key = self.openai_key_edit.text()
+        self.app_config.mistral_key = self.mistral_key_edit.text()
+        self.app_config.system_prompt = self.prompt_edit.toPlainText()
 
-        config["PROMPT"] = {
-            'system_prompt' : self.prompt_edit.toPlainText()
-        }
-
-        with open(Path("LLM-translate-config.ini"), 'w') as f:
-            config.write(f)
-
-        QMessageBox.information(self, "Success", "Configuration saved successfully!")
-
+        # Save to file
+        if self.app_config.save_to_file():
+            QMessageBox.information(self, "Success", "Configuration saved successfully!")
+        else:
+            QMessageBox.critical(self, "Error", "Failed to save configuration!")
 
 class TranslationPage(QWidget):
     """Translation screen for file selection and progress monitoring"""
-    def __init__(self):
+    def __init__(self, app_config):
         super().__init__()
+        self.app_config = app_config  # Reference to shared config
+        self.translation_thread = None
         self.initUI()
 
     def initUI(self):
@@ -212,6 +250,10 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("LLM Translation Tool")
         self.setGeometry(100, 100, 900, 600)
 
+        # Create central configuration object
+        self.app_config = AppConfig()
+        self.app_config.load_from_file()
+
         self.initUI()
 
     def initUI(self):
@@ -229,8 +271,8 @@ class MainWindow(QMainWindow):
 
         # Create stacked widget for pages
         self.stacked_widget = QStackedWidget()
-        self.config_page = ConfigurationPage()
-        self.translation_page = TranslationPage()
+        self.config_page = ConfigurationPage(self.app_config)
+        self.translation_page = TranslationPage(self.app_config)
 
         self.stacked_widget.addWidget(self.config_page)
         self.stacked_widget.addWidget(self.translation_page)
