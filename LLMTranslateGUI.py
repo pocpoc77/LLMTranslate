@@ -5,11 +5,15 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QGroupBox, QFormLayout)
 from PySide6.QtCore import Qt
 
+import configparser
+from pathlib import Path
+
 class ConfigurationPage(QWidget):
     """Configuration screen for API keys and prompt settings"""
     def __init__(self):
         super().__init__()
         self.initUI()
+        self.load_config()
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -18,9 +22,14 @@ class ConfigurationPage(QWidget):
         api_group = QGroupBox("API Configuration")
         api_layout = QFormLayout()
 
+
+        self.openai_url_edit = QLineEdit()
+        api_layout.addRow("OpenAI-compatible API URL:", self.openai_url_edit)
+
         self.openai_key_edit = QLineEdit()
         self.openai_key_edit.setEchoMode(QLineEdit.Password)
         api_layout.addRow("OpenAI-compatible API Key:", self.openai_key_edit)
+
 
         self.mistral_key_edit = QLineEdit()
         self.mistral_key_edit.setEchoMode(QLineEdit.Password)
@@ -38,10 +47,6 @@ class ConfigurationPage(QWidget):
         self.prompt_edit.setMinimumHeight(300)
         prompt_layout.addWidget(self.prompt_edit)
 
-        # Add default prompt button
-        default_btn = QPushButton("Load Default Prompt")
-        default_btn.clicked.connect(self.load_default_prompt)
-        prompt_layout.addWidget(default_btn)
 
         prompt_group.setLayout(prompt_layout)
         layout.addWidget(prompt_group)
@@ -53,16 +58,41 @@ class ConfigurationPage(QWidget):
 
         self.setLayout(layout)
 
-    def load_default_prompt(self):
-        """Placeholder: Load the default system prompt"""
-        # TODO: Implement loading of default system prompt
-        self.prompt_edit.setPlainText("Default prompt will appear here")
-        print("Load default prompt button clicked")
+
+    def load_config(self):
+        """loads the config file and parses the parameters"""
+        config = configparser.ConfigParser()
+        config_file = Path("LLM-translate-config.ini")
+
+        # Read create config file if it exists
+        if config_file.exists():
+            print(f"Config file '{config_file}' found. Reading configuration...")
+            config.read(config_file)
+            # Load API keys
+            if 'DEFAULT' in config:
+                self.openai_url_edit.setText(config["DEFAULT"].get('openai_url', ''))
+                self.openai_key_edit.setText(config['DEFAULT'].get('openai', ''))
+                self.mistral_key_edit.setText(config['DEFAULT'].get('mistral', ''))
+
+            if 'PROMPT' in config:
+                self.prompt_edit.setPlainText(config["PROMPT"].get('system_prompt', ''))
 
     def save_config(self):
-        """Placeholder: Save configuration to file"""
-        # TODO: Implement configuration saving
-        print("Save configuration button clicked")
+        """Save configuration to file"""
+        config = configparser.ConfigParser()
+        config["DEFAULT"] = {
+            'openai_url': self.openai_url_edit.text(),
+            'openai' : self.openai_key_edit.text(),
+            'mistral' : self.mistral_key_edit.text()
+        }
+
+        config["PROMPT"] = {
+            'system_prompt' : self.prompt_edit.toPlainText()
+        }
+
+        with open(Path("LLM-translate-config.ini"), 'w') as f:
+            config.write(f)
+
         QMessageBox.information(self, "Success", "Configuration saved successfully!")
 
 
