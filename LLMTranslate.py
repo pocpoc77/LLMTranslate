@@ -86,7 +86,7 @@ def parseFromFile(filepath):
                 for index, item in enumerate(parsedListFromFile):
                     content = content + item + '\n'
                 parsedListFromFile = []
-                apiCall(content, filepath, args.model, mistralclient, openaiclient, custom_prompt, "deepseek/deepseek-r1-0528:free")
+                apiCall(content, filepath, args.model, mistralclient, openaiclient, custom_prompt, "deepseek/deepseek-r1-0528:free" if args.model == "openai-compatible" else "mistral-small-latest")
 
 
 def apiCall(content, path, model, mistral_client, openai_client, system_prompt, llmName):
@@ -94,7 +94,7 @@ def apiCall(content, path, model, mistral_client, openai_client, system_prompt, 
         try:
             if model == "mistral":
                 completion = mistral_client.chat.complete(
-                    model= "mistral-large-latest",
+                    model= llmName,
                     messages = [
                         {
                             "role": "system",

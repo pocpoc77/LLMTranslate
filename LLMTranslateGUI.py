@@ -20,8 +20,10 @@ class AppConfig:
     """Central configuration object for the application"""
     def __init__(self):
         self.openai_url = ""
+        self.openai_model = ""
         self.openai_key = ""
         self.mistral_key = ""
+        self.mistral_model = ""
         self.system_prompt = ""
 
     def load_from_file(self, config_file = Path("LLM-translate-config.ini")):
@@ -34,6 +36,8 @@ class AppConfig:
                 self.openai_url = config['DEFAULT'].get('openai_url', '')
                 self.openai_key = config['DEFAULT'].get('openai', '')
                 self.mistral_key = config['DEFAULT'].get('mistral', '')
+                self.openai_model = config["DEFAULT"].get('openai_model', '')
+                self.mistral_model = config["DEFAULT"].get('mistral_model', '')
 
             if 'PROMPT' in config and 'system_prompt' in config['PROMPT']:
                 self.system_prompt = config['PROMPT']['system_prompt']
@@ -50,7 +54,9 @@ class AppConfig:
             config['DEFAULT'] = {
                 'openai_url': self.openai_url,
                 'openai': self.openai_key,
-                'mistral': self.mistral_key
+                'openai_model': self.openai_model,
+                'mistral': self.mistral_key,
+                'mistral_model': self.mistral_model
             }
 
             config['PROMPT'] = {
@@ -90,10 +96,17 @@ class ConfigurationPage(QWidget):
         self.openai_key_edit.setEchoMode(QLineEdit.Password)
         api_layout.addRow("OpenAI-compatible API Key:", self.openai_key_edit)
 
+        self.openai_model_edit = QLineEdit()
+        api_layout.addRow("OpenAI-compatible model name:", self.openai_model_edit)
 
         self.mistral_key_edit = QLineEdit()
         self.mistral_key_edit.setEchoMode(QLineEdit.Password)
         api_layout.addRow("Mistral API Key:", self.mistral_key_edit)
+
+
+        self.mistral_model_edit = QLineEdit()
+        api_layout.addRow("Mistral model name:", self.mistral_model_edit)
+
 
         api_group.setLayout(api_layout)
         layout.addWidget(api_group)
@@ -123,7 +136,9 @@ class ConfigurationPage(QWidget):
         """loads the config"""
         self.openai_url_edit.setText(self.app_config.openai_url)
         self.openai_key_edit.setText(self.app_config.openai_key)
+        self.openai_model_edit.setText(self.app_config.openai_model)
         self.mistral_key_edit.setText(self.app_config.mistral_key)
+        self.mistral_model_edit.setText(self.app_config.mistral_model)
         self.prompt_edit.setPlainText(self.app_config.system_prompt)
 
     def save_config(self):
@@ -131,7 +146,9 @@ class ConfigurationPage(QWidget):
         # Update the shared config object
         self.app_config.openai_url = self.openai_url_edit.text()
         self.app_config.openai_key = self.openai_key_edit.text()
+        self.app_config.openai_model = self.openai_model_edit.text()
         self.app_config.mistral_key = self.mistral_key_edit.text()
+        self.app_config.mistral_model = self.mistral_model_edit.text()
         self.app_config.system_prompt = self.prompt_edit.toPlainText()
 
         # Save to file
@@ -208,8 +225,7 @@ class TranslationPage(QWidget):
         self.setLayout(layout)
 
     def browse_file(self):
-        """Placeholder: Open file dialog to select a file"""
-        # TODO: Implement file browsing
+        """Open file dialog to select a file"""
         print("Browse file button clicked")
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select File", "", "PDF Files (*.pdf);;All Files (*)"
@@ -335,7 +351,7 @@ class TranslationWorker(QThread):
                             self.mistral_client,
                             self.openai_client,
                             self.app_config.system_prompt,
-                            "deepseek/deepseek-r1:free"
+                            self.app_config.openai_model if self.model == "openai" else self.app_config.mistral_model
                         )
                         # Update progress
                         pageNum = pageNum + 1
