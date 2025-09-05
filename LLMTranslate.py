@@ -8,15 +8,12 @@ import configparser
 import MistralOCR
 from utility import filenameFromPath
 
-parser = argparse.ArgumentParser(prog='LLM Translate', description='Translates the input file, to the target language in page chunks.')
-parser.add_argument('filename', help='Input file path')
-parser.add_argument('-m', '--model', help="Specify the model to use for translation", choices=['openai-compatible', 'mistral'], default='openai-compatible')
+
 
 
 max_retries = 3
 content = ""
 
-args = parser.parse_args()
 
 
 # Init config file
@@ -176,4 +173,9 @@ def main():
     parseFromFile(filenameFromPath(args.filename) + " ocred.md")
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog='LLM Translate', description='Translates the input file, to the target language in page chunks.')
+    parser.add_argument('filename', help='Input file path')
+    parser.add_argument('-m', '--model', help="Specify the model to use for translation", choices=['openai-compatible', 'mistral'], default='openai-compatible')
+    args = parser.parse_args()
+    main()
