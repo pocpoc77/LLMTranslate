@@ -25,31 +25,32 @@ if config_file.exists():
        print(f"Config file '{config_file}' found. Reading configuration...")
        config.read(config_file)
 else:
-    print(f"Config file '{config_file}' not found. Creating new configuration...")
-    # Ask user for parameter values
-    param1 = input("Enter API Key for OPENAI compatible server: ")
-    param2 = input("Enter API Key for Mistral: ")
-    # Set configuration values
-    config['DEFAULT'] = {
-        'openai': param1,
-        'mistral': param2
-    }
+    if __name__ == "__main__":
+        print(f"Config file '{config_file}' not found. Creating new configuration...")
+        # Ask user for parameter values
+        param1 = input("Enter API Key for OPENAI compatible server: ")
+        param2 = input("Enter API Key for Mistral: ")
+        # Set configuration values
+        config['DEFAULT'] = {
+            'openai': param1,
+            'mistral': param2
+        }
 
-    # Write configuration to file
-    try:
-        config_file.write_text('')  # Create the file first
-        with open(config_file, 'w') as f:
-            config.write(f)
-        print(f"Configuration saved to '{config_file}'")
-    except IOError as e:
-        print(f"Error writing config file: {e}")
+        # Write configuration to file
+        try:
+            config_file.write_text('')  # Create the file first
+            with open(config_file, 'w') as f:
+                config.write(f)
+            print(f"Configuration saved to '{config_file}'")
+        except IOError as e:
+            print(f"Error writing config file: {e}")
 
-
-# instantiate apis
-openaiclient = OpenAI(
-base_url="https://openrouter.ai/api/v1",
-api_key=config["DEFAULT"].get("openai"),
-)
+if __name__ == "__main__":
+    # instantiate apis
+    openaiclient = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=config["DEFAULT"].get("openai"),
+    )
 
 mistralclient = Mistral(api_key = config["DEFAULT"].get("mistral"))
 

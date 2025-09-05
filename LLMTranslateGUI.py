@@ -29,6 +29,9 @@ class AppConfig:
     def load_from_file(self, config_file = Path("LLM-translate-config.ini")):
         """Load configuration from file"""
         try:
+            if not config_file.exists():
+                self.create_default_config(config_file)
+
             config = configparser.ConfigParser()
             config.read(config_file)
 
@@ -45,6 +48,32 @@ class AppConfig:
             return True
         except Exception as e:
             print(f"Error loading config: {e}")
+            return False
+
+
+    def create_default_config(self, config_file):
+        """Create a default configuration file"""
+        try:
+            config = configparser.ConfigParser()
+            config['DEFAULT'] = {
+                'openai_url': self.openai_url,
+                'openai': self.openai_key,
+                'openai_model': self.openai_model,
+                'mistral': self.mistral_key,
+                'mistral_model': self.mistral_model
+            }
+
+            config['PROMPT'] = {
+                'system_prompt': self.system_prompt
+            }
+
+            with open(config_file, 'w') as f:
+                config.write(f)
+
+            print(f"Created default configuration file at '{config_file}'")
+            return True
+        except Exception as e:
+            print(f"Error creating default config: {e}")
             return False
 
     def save_to_file(self, config_file="LLM-translate-config.ini"):
