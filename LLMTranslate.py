@@ -57,7 +57,7 @@ api_key=config["DEFAULT"].get("openai"),
 mistralclient = Mistral(api_key = config["DEFAULT"].get("mistral"))
 
 
-system_prompt = (
+custom_prompt = (
         "You are a professional medical translator from English to فارسی ایران. Translate by following these rules and DO NOT HALLUCINATE.:\n"
         "1. Maintain strict technical accuracy\n"
         "2. Preserve numbers and measurements\n"
@@ -89,10 +89,10 @@ def parseFromFile(filepath):
                 for index, item in enumerate(parsedListFromFile):
                     content = content + item + '\n'
                 parsedListFromFile = []
-                apiCall(content, filepath, args.model, mistralclient, openaiclient)
+                apiCall(content, filepath, args.model, mistralclient, openaiclient, custom_prompt, "deepseek/deepseek-r1-0528:free")
 
 
-def apiCall(content, path, model, mistral_client, openai_client):
+def apiCall(content, path, model, mistral_client, openai_client, system_prompt, llmName):
     for tries in range(max_retries):
         try:
             if model == "mistral":
@@ -120,9 +120,7 @@ def apiCall(content, path, model, mistral_client, openai_client):
                     #    "order": ["Targon", "Chutes"]
                     #}
                 },
-                model="deepseek/deepseek-r1-0528:free",
-                #model="google/gemma-3-27b-it:free",
-                #model="tngtech/deepseek-r1t-chimera:free",
+                model=llmName,
                 messages=[
                     {
                         "role": "system",
