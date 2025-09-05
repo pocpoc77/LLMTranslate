@@ -49,12 +49,12 @@ else:
 
 
 # instantiate apis
-openai_client = OpenAI(
+openaiclient = OpenAI(
 base_url="https://openrouter.ai/api/v1",
 api_key=config["DEFAULT"].get("openai"),
 )
 
-mistral_client = Mistral(api_key = config["DEFAULT"].get("mistral"))
+mistralclient = Mistral(api_key = config["DEFAULT"].get("mistral"))
 
 
 system_prompt = (
@@ -89,10 +89,10 @@ def parseFromFile(filepath):
                 for index, item in enumerate(parsedListFromFile):
                     content = content + item + '\n'
                 parsedListFromFile = []
-                apiCall(content, filepath, args.model)
+                apiCall(content, filepath, args.model, mistralclient, openaiclient)
 
 
-def apiCall(content, path, model):
+def apiCall(content, path, model, mistral_client, openai_client):
     for tries in range(max_retries):
         try:
             if model == "mistral":
@@ -166,7 +166,7 @@ def apiCall(content, path, model):
 
 def main():
     if(args.filename.endswith(".pdf")):
-        MistralOCR.ocrCall(args.filename, mistral_client)
+        MistralOCR.ocrCall(args.filename, mistralclient)
         print("OCR done.")
     else:
         print("ERROR: Only pdf files are supported for now!")
