@@ -351,7 +351,7 @@ class TranslationWorker(QThread):
                             self.mistral_client,
                             self.openai_client,
                             self.app_config.system_prompt,
-                            self.app_config.openai_model if self.model == "openai" else self.app_config.mistral_model
+                            self.app_config.openai_model if self.model == "openai-compatible" else self.app_config.mistral_model
                         )
                         # Update progress
                         pageNum = pageNum + 1
