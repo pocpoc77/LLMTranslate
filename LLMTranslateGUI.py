@@ -3,10 +3,18 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QStackedWidget, QListWidget, QLabel, QLineEdit, QTextEdit,
                                QPushButton, QFileDialog, QComboBox, QProgressBar, QMessageBox,
                                QGroupBox, QFormLayout)
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
 
 import configparser
 from pathlib import Path
+
+import MistralOCR
+from mistralai import Mistral
+from LLMTranslate import apiCall
+from utility import filenameFromPath
+from openai import OpenAI
+from openai.types.chat.chat_completion import Choice
+import os
 
 class AppConfig:
     """Central configuration object for the application"""
@@ -137,7 +145,6 @@ class TranslationPage(QWidget):
     def __init__(self, app_config):
         super().__init__()
         self.app_config = app_config  # Reference to shared config
-        self.translation_thread = None
         self.initUI()
 
     def initUI(self):
@@ -211,13 +218,17 @@ class TranslationPage(QWidget):
             self.file_path_edit.setText(file_path)
 
     def start_translation(self):
-        """Placeholder: Start the translation process"""
-        # TODO: Implement translation process
+        """Start the OCR and translation process"""
         print("Start translation button clicked")
         file_path = self.file_path_edit.text()
         if not file_path:
             QMessageBox.warning(self, "Warning", "Please select a file first.")
             return
+        if not os.path.exists(file_path):
+            QMessageBox.warning(self, "Warning", "The selected file does not exist.")
+            return
+
+
 
         # Update UI to show progress
         self.start_btn.setEnabled(False)
@@ -225,13 +236,22 @@ class TranslationPage(QWidget):
         self.progress_bar.setVisible(True)
         self.status_label.setText("Translation in progress...")
 
-        # TODO: Implement actual translation logic here
-        # This is just a simulation
-        # In real implementation, this would run in a separate thread
+        # implement the translation thread
+        self.worker = TranslationWorker(file_path, self.model_combo.currentText(), self.app_config)
+
+        # Connect signals
+        self.worker.progress_update.connect(self.update_progress)
+        self.worker.status_update.connect(self.status_label.setText)
+        self.worker.finished.connect(self.translation_finished)
+
+        # Start the thread
+        self.worker.start()
 
     def cancel_translation(self):
         """Placeholder: Cancel the ongoing translation"""
-        # TODO: Implement translation cancellation
+        if hasattr(self, 'worker') and self.worker.isRunning():
+            self.worker.stop()
+            self.worker.wait()
         print("Cancel translation button clicked")
         self.status_label.setText("Translation cancelled.")
         self.reset_ui()
@@ -241,6 +261,97 @@ class TranslationPage(QWidget):
         self.start_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
         self.progress_bar.setVisible(False)
+
+    def update_progress(self, page_num):
+        self.status_label.setText(f"Processing page {page_num}")
+
+    def translation_finished(self, success, message):
+        self.reset_ui()
+        if success:
+            QMessageBox.information(self, "Success", message)
+        else:
+            QMessageBox.critical(self, "Error", message)
+
+
+class TranslationWorker(QThread):
+    """OCR and translation main thread"""
+    progress_update = Signal(int)  # current, total
+    status_update = Signal(str)
+    finished = Signal(bool, str)  # success, message
+
+
+    def __init__(self, file_path, model, app_config):
+        super().__init__()
+        self.file_path = file_path
+        self.model = model
+        self.app_config = app_config
+        self._is_running = True
+
+        # Initialize llm clients
+        self.mistral_client = Mistral(api_key=self.app_config.mistral_key)
+        self.openai_client = OpenAI(
+            base_url=self.app_config.openai_url,
+            api_key=self.app_config.openai_key,
+        )
+
+    def run(self):
+        try:
+            # OCR for PDF files
+            if self.file_path.lower().endswith('.pdf'):
+                self.status_update.emit("Performing OCR...")
+
+
+                # Perform OCR
+                MistralOCR.ocrCall(self.file_path, self.mistral_client)
+
+                # Use OCR output as input for translation
+                input_file = filenameFromPath(self.file_path) + " ocred.md"
+                self.status_update.emit("OCR completed. Starting translation...")
+
+            else:
+                input_file = self.file_path
+
+            # enumerate chunks for translation
+            parsedListFromFile = []
+            with open(input_file, 'r', encoding='utf-8') as f:
+                pageNum = 0
+                for line in f:
+
+                    if not self._is_running:
+                        break
+
+                    if line.strip() != "---":
+                        parsedListFromFile.append(line)
+                    else:
+                        content = ""
+                        for index, item in enumerate(parsedListFromFile):
+                            content = content + item + '\n'
+                        parsedListFromFile = []
+                        # Call translation API TODO: add custom llmName support
+                        apiCall(
+                            content,
+                            self.file_path,
+                            self.model,
+                            self.mistral_client,
+                            self.openai_client,
+                            self.app_config.system_prompt,
+                            "deepseek/deepseek-r1:free"
+                        )
+                        # Update progress
+                        pageNum = pageNum + 1
+                        self.progress_update.emit(pageNum)
+
+
+            if self._is_running:
+                self.finished.emit(True, "Translation completed successfully!")
+            else:
+                self.finished.emit(False, "Translation cancelled.")
+
+        except Exception as e:
+            self.finished.emit(False, f"Error: {str(e)}")
+
+    def stop(self):
+        self._is_running = False
 
 
 class MainWindow(QMainWindow):
