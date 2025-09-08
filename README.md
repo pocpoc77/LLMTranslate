@@ -48,7 +48,7 @@ No installation required! just download the latest version for your OS from [Rel
 ### THE GUI
 
 1. **Initial configuration:**
-   * After launching the app, at the configuration tab, enter your Mistral API key that you generate from [here](console.mistral.ai/api-keys) and the Mistral model name you like to use for translation (not OCR) e.g. 'mistral-large-latest'
+   * After launching the app, at the configuration tab, enter your Mistral API key that you generate from [here](console.mistral.ai/api-keys) and the Mistral model name you like to use for translation (not OCR) e.g. 'mistral-large-latest'. **Note that for now, this step is mandatory for OCR proccessing.**
    * Enter openai compatible url, api key and, model name, you can either use a local model with Ollama or LM-Studio, or you can use services like OpenRouter.
    * Enter your custom system prompt to perform the translation, this step is crucial for getting the best results.
 
