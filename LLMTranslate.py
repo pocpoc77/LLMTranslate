@@ -39,7 +39,7 @@ else:
         # Write configuration to file
         try:
             config_file.write_text('')  # Create the file first
-            with open(config_file, 'w') as f:
+            with open(config_file, 'w', encoding='utf-8') as f:
                 config.write(f)
             print(f"Configuration saved to '{config_file}'")
         except IOError as e:
@@ -154,7 +154,7 @@ def apiCall(content, path, model, mistral_client, openai_client, system_prompt, 
             print(f"Attempt {tries+1} failed with error: {str(e)}")
 
 
-    with open(filenameFromPath(path) + ' ' + model +" translated.md", "a") as output:
+    with open(filenameFromPath(path) + ' ' + model +" translated.md", "a", encoding='utf-8') as output:
         output.write(str(translated_content) + '\n')
 
 
